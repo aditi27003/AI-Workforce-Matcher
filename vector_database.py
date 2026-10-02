@@ -95,8 +95,8 @@ def upsert_employees(index, employees: dict) -> None:
 # --------------------------------------------------------------------------
 # Step 3 - Semantic search
 # --------------------------------------------------------------------------
-def search_candidates(index, project_scope: str, top_k: int = TOP_K) -> list[str]:
-    """Return the employee profiles that best match the project scope."""
+def search_matches(index, project_scope: str, top_k: int = TOP_K) -> list[dict]:
+    """Return the best-matching employees as dicts: name, profile text and similarity score."""
     response = index.search(
         namespace=NAMESPACE,
         query={"inputs": {"text": project_scope}, "top_k": top_k},
@@ -106,8 +106,16 @@ def search_candidates(index, project_scope: str, top_k: int = TOP_K) -> list[str
     for hit in response.result.hits:
         text = (hit.fields or {}).get("content", "")
         if text:
-            matches.append(f"{text} (similarity: {hit.score:.3f})")
+            matches.append({"name": hit.id, "profile": text, "score": hit.score})
     return matches
+
+
+def search_candidates(index, project_scope: str, top_k: int = TOP_K) -> list[str]:
+    """Return the matching employee profiles as readable lines for the LLM prompt."""
+    return [
+        f"{m['profile']} (similarity: {m['score']:.3f})"
+        for m in search_matches(index, project_scope, top_k)
+    ]
 
 
 # --------------------------------------------------------------------------

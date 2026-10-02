@@ -4,6 +4,7 @@
 
 AI Workforce Matcher is a small Retrieval-Augmented Generation (RAG) project. It stores employee skill profiles in a **Pinecone** vector database, finds the employees whose skills best match a project description using **semantic search**, and asks **Mistral AI** to recommend who should be assigned and why.
 
+🚀 **Live app:** https://ai-workforce-matcher.streamlit.app — type a project, get real Pinecone scores and a Mistral recommendation
 🌐 **Project page:** https://aditi27003.github.io/AI-Workforce-Matcher/
 📓 **Try it in Colab:** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aditi27003/AI-Workforce-Matcher/blob/main/vector_database.ipynb)
 
@@ -47,6 +48,7 @@ Project scope ──► Semantic search ┘──► Top matching employees
 | Pinecone | Vector database with integrated embeddings |
 | `llama-text-embed-v2` | Embedding model (hosted by Pinecone) |
 | Mistral AI (`mistral-small-latest`) | Recommendation and justification |
+| Streamlit | Live web app |
 | python-dotenv | Loads API keys from a local `.env` file |
 
 ---
@@ -67,13 +69,17 @@ Edit the `EMPLOYEES` dictionary in `vector_database.py` to use your own team.
 
 ## Getting Started
 
-### Option 1 – Google Colab (easiest)
+### Option 1 – Use the live app
+
+Open **https://ai-workforce-matcher.streamlit.app**, describe a project (for example *"I need someone for a data analytics job"*), and click **Find the best match**.
+
+### Option 2 – Google Colab
 
 1. Click **Open in Colab** above.
 2. Open the 🔑 **Secrets** panel in Colab and add `MISTRAL_API_KEY` and `PINECONE_API_KEY`.
 3. Run all cells.
 
-### Option 2 – Run locally
+### Option 3 – Run locally
 
 ```bash
 git clone https://github.com/aditi27003/AI-Workforce-Matcher.git
@@ -89,6 +95,23 @@ Try your own project description:
 python vector_database.py "Set up CI/CD pipelines on AWS with Docker"
 ```
 
+Or start the web app on your computer:
+
+```bash
+streamlit run app.py
+```
+
+### Deploying the live app (Streamlit Community Cloud)
+
+1. Sign in at [share.streamlit.io](https://share.streamlit.io) with GitHub.
+2. **Create app** → repository `aditi27003/AI-Workforce-Matcher`, branch `main`, main file `app.py`.
+3. Under **Advanced settings → Secrets**, paste:
+   ```toml
+   MISTRAL_API_KEY = "your-mistral-api-key"
+   PINECONE_API_KEY = "your-pinecone-api-key"
+   ```
+4. Click **Deploy**.
+
 ### Getting API keys
 
 - **Pinecone:** sign up at [pinecone.io](https://www.pinecone.io) → API Keys
@@ -102,7 +125,8 @@ python vector_database.py "Set up CI/CD pipelines on AWS with Docker"
 
 ```
 AI-Workforce-Matcher/
-├── vector_database.py     # Main script
+├── app.py                 # Live Streamlit web app
+├── vector_database.py     # Core logic + command-line script
 ├── vector_database.ipynb  # Colab notebook version
 ├── index.html             # Project web page (GitHub Pages)
 ├── requirements.txt       # Python dependencies
@@ -118,7 +142,6 @@ AI-Workforce-Matcher/
 - Load employees from a CSV, spreadsheet or HR system
 - Add availability, experience level and location as search filters
 - Recommend a full team for multi-skill projects
-- Web interface for entering project scopes
 - Use Pinecone reranking for more accurate matches
 
 ---

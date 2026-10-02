@@ -111,6 +111,7 @@
   <div class="wrap nav">
     <div class="brand"><span class="brand-mark">AI</span>Workforce Matcher</div>
     <nav class="nav-links">
+      <a href="https://ai-workforce-matcher.streamlit.app">Live app</a>
       <a href="#how">How it works</a>
       <a href="#stack">Tech stack</a>
       <a href="#run">Run it</a>
@@ -126,7 +127,8 @@
       <h1>Describe the project.<br><em>Find the right person.</em></h1>
       <p class="lede">AI Workforce Matcher searches your team's skills by meaning, not keywords, and an LLM explains who should take the project and why.</p>
       <div class="btns">
-        <a class="btn primary" href="https://colab.research.google.com/github/aditi27003/AI-Workforce-Matcher/blob/main/vector_database.ipynb">Open in Colab</a>
+        <a class="btn primary" href="https://ai-workforce-matcher.streamlit.app">Try the live app →</a>
+        <a class="btn ghost" href="https://colab.research.google.com/github/aditi27003/AI-Workforce-Matcher/blob/main/vector_database.ipynb">Open in Colab</a>
         <a class="btn ghost" href="https://github.com/aditi27003/AI-Workforce-Matcher">View on GitHub</a>
       </div>
     </div>
@@ -137,7 +139,7 @@
       <div class="demo-label">Semantic match</div>
       <div id="emps"></div>
       <div class="answer" id="ans"><b>Recommendation:</b> Bob — his React and UI/UX skills fit a reactive, modern dashboard.</div>
-      <p class="note">Illustrative example. Real scores come from Pinecone and vary by run.</p>
+      <p class="note">Illustrative example. <a href="https://ai-workforce-matcher.streamlit.app">Try the live app</a> for real Pinecone scores.</p>
     </div>
   </div>
 
@@ -187,6 +189,7 @@
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" aria-selected="true" data-p="local">Local</button>
       <button class="tab" role="tab" aria-selected="false" data-p="colab">Colab</button>
+      <button class="tab" role="tab" aria-selected="false" data-p="app">Web app</button>
     </div>
     <div class="panel" id="local">
 <pre>git clone https://github.com/aditi27003/AI-Workforce-Matcher.git
@@ -200,6 +203,10 @@ python vector_database.py "Set up CI/CD pipelines on AWS with Docker"</pre>
 <span class="c"># 2. Secrets panel → add MISTRAL_API_KEY and PINECONE_API_KEY</span>
 <span class="c"># 3. Runtime → Run all</span></pre>
     </div>
+    <div class="panel" id="app" hidden>
+<pre>pip install -r requirements.txt
+streamlit run app.py   <span class="c"># opens the app in your browser</span></pre>
+    </div>
     <p class="callout">🔒 API keys stay in your local <code>.env</code> or Colab Secrets and are never committed.</p>
   </section>
 
@@ -209,8 +216,7 @@ python vector_database.py "Set up CI/CD pipelines on AWS with Docker"</pre>
       <span>Load employees from CSV / HR systems</span>
       <span>Filter by availability &amp; experience</span>
       <span>Recommend full teams</span>
-      <span>Web UI for project scopes</span>
-      <span>Pinecone reranking</span>
+            <span>Pinecone reranking</span>
     </div>
   </section>
 </main>
