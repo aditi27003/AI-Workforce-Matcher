@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Workforce Matcher</title>
+<meta name="description" content="Match employees to projects with semantic search (Pinecone) and an LLM recommendation (Mistral AI).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f5f1; --surface:#ffffff; --ink:#16181d; --muted:#5d6370; --line:#e3e1d9;
+    --accent:#4b3fd1; --accent-soft:#ebe9ff; --mint:#0f8a6a; --mint-soft:#dff4ec;
+    --code-bg:#16181d; --code-ink:#e8e6df;
+    --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#111317; --surface:#1a1d23; --ink:#eceae4; --muted:#a2a7b2; --line:#2b2f37;
+      --accent:#9d95ff; --accent-soft:#25224a; --mint:#4fd1a8; --mint-soft:#15332a;
+      --code-bg:#0b0c0f; --code-ink:#e8e6df;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6;font-size:16px}
+  a{color:var(--accent)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  h1,h2,h3{font-family:var(--display);line-height:1.15;letter-spacing:-0.01em}
+
+  header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;justify-content:space-between;align-items:center;padding-top:14px;padding-bottom:14px}
+  .brand{font-family:var(--display);font-weight:700;display:flex;gap:10px;align-items:center}
+  .brand-mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:grid;place-items:center;color:#fff;font-size:13px}
+  .nav-links{display:flex;gap:22px;font-size:14px}
+  .nav-links a{color:var(--muted);text-decoration:none}
+  .nav-links a:hover{color:var(--ink)}
+  @media(max-width:640px){.nav-links{display:none}}
+
+  .hero{padding:72px 0 56px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+  @media(max-width:860px){.hero{grid-template-columns:1fr;padding-top:48px}}
+  .pill{display:inline-block;font-family:var(--mono);font-size:12px;background:var(--accent-soft);color:var(--accent);padding:4px 10px;border-radius:99px;margin-bottom:18px}
+  .hero h1{font-size:clamp(34px,5vw,54px);margin-bottom:18px}
+  .hero h1 em{font-style:normal;color:var(--accent)}
+  .lede{color:var(--muted);font-size:18px;max-width:46ch;margin-bottom:28px}
+  .btns{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;text-decoration:none;border:1px solid var(--line)}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.ghost{color:var(--ink);background:var(--surface)}
+  .btn:hover{transform:translateY(-1px)}
+
+  /* demo card */
+  .demo{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 20px 40px -24px rgba(0,0,0,.25)}
+  .demo-label{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+  .query{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14.5px;margin-bottom:18px;min-height:48px}
+  .caret{display:inline-block;width:2px;height:1em;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .emp{display:grid;grid-template-columns:72px 1fr 52px;gap:10px;align-items:center;font-size:13.5px;padding:7px 0}
+  .emp .name{font-weight:600}
+  .bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .bar span{display:block;height:100%;width:0;background:var(--muted);border-radius:99px;transition:width .9s ease}
+  .emp.top .bar span{background:var(--accent)}
+  .emp .score{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+  .answer{margin-top:16px;background:var(--mint-soft);color:var(--ink);border-radius:10px;padding:12px 14px;font-size:14px;opacity:0;transform:translateY(6px);transition:all .5s}
+  .answer.show{opacity:1;transform:none}
+  .answer b{color:var(--mint)}
+  .note{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  .sec-head{max-width:60ch;margin-bottom:32px}
+  .sec-head h2{font-size:clamp(26px,3.4vw,36px);margin-bottom:10px}
+  .sec-head p{color:var(--muted)}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:860px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .step .n{font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:10px}
+  .step h3{font-size:19px;margin-bottom:8px}
+  .step p{color:var(--muted);font-size:14.5px}
+  .step code{font-family:var(--mono);font-size:12.5px;background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px}
+
+  .flow{margin-top:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
+  .flow span{background:var(--surface);border:1px solid var(--line);padding:6px 10px;border-radius:8px}
+  .flow i{font-style:normal;color:var(--muted)}
+
+  table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:14.5px}
+  th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
+  tr:last-child td{border-bottom:none}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:14px;padding:20px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.7}
+  pre .c{color:#8b919c}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tab{font:600 14px var(--body);padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .panel[hidden]{display:none}
+  .callout{margin-top:14px;font-size:14px;color:var(--muted)}
+
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chips span{border:1px dashed var(--line);background:var(--surface);padding:8px 14px;border-radius:99px;font-size:14px;color:var(--muted)}
+
+  footer{padding:40px 0 56px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  @media (prefers-reduced-motion:reduce){.bar span,.answer{transition:none}.caret{animation:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="brand-mark">AI</span>Workforce Matcher</div>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#stack">Tech stack</a>
+      <a href="#run">Run it</a>
+      <a href="https://github.com/aditi27003/AI-Workforce-Matcher">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <span class="pill">RAG · Pinecone · Mistral AI</span>
+      <h1>Describe the project.<br><em>Find the right person.</em></h1>
+      <p class="lede">AI Workforce Matcher searches your team's skills by meaning, not keywords, and an LLM explains who should take the project and why.</p>
+      <div class="btns">
+        <a class="btn primary" href="https://colab.research.google.com/github/aditi27003/AI-Workforce-Matcher/blob/main/vector_database.ipynb">Open in Colab</a>
+        <a class="btn ghost" href="https://github.com/aditi27003/AI-Workforce-Matcher">View on GitHub</a>
+      </div>
+    </div>
+
+    <div class="demo" aria-label="Example run">
+      <div class="demo-label">Project scope</div>
+      <div class="query" id="q"><span class="caret"></span></div>
+      <div class="demo-label">Semantic match</div>
+      <div id="emps"></div>
+      <div class="answer" id="ans"><b>Recommendation:</b> Bob — his React and UI/UX skills fit a reactive, modern dashboard.</div>
+      <p class="note">Illustrative example. Real scores come from Pinecone and vary by run.</p>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="sec-head">
+      <h2>How it works</h2>
+      <p>A three-step Retrieval-Augmented Generation pipeline: store, search, recommend.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="n">01 / STORE</div><h3>Embed employee skills</h3><p>Each employee becomes a sentence like <code>Employee Bob is qualified in: React…</code>. Pinecone embeds it with <code>llama-text-embed-v2</code>.</p></div>
+      <div class="step"><div class="n">02 / SEARCH</div><h3>Search by meaning</h3><p>The project scope is embedded the same way. Pinecone returns the closest profiles, so "reactive dashboard" finds React developers.</p></div>
+      <div class="step"><div class="n">03 / RECOMMEND</div><h3>Ask the LLM</h3><p>The top matches and the scope go to Mistral, which picks the best fit and gives a short justification.</p></div>
+    </div>
+    <div class="flow" aria-hidden="true">
+      <span>Employee skills</span><i>→</i><span>Pinecone index</span><i>→</i><span>Semantic search</span><i>→</i><span>Top-k matches</span><i>→</i><span>Mistral AI</span><i>→</i><span>Recommendation</span>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="sec-head"><h2>Tech stack &amp; sample data</h2><p>Five sample employees, swappable for your own team.</p></div>
+    <div class="grid2">
+      <table>
+        <thead><tr><th>Tool</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>Python</td><td>Application logic</td></tr>
+          <tr><td>Pinecone</td><td>Vector database, integrated embeddings</td></tr>
+          <tr><td>llama-text-embed-v2</td><td>Embedding model</td></tr>
+          <tr><td>Mistral AI</td><td>Recommendation &amp; reasoning</td></tr>
+          <tr><td>python-dotenv</td><td>Keeps API keys out of code</td></tr>
+        </tbody>
+      </table>
+      <table>
+        <thead><tr><th>Employee</th><th>Skills</th></tr></thead>
+        <tbody>
+          <tr><td>Alice</td><td>Python, SQL, Machine Learning</td></tr>
+          <tr><td>Bob</td><td>React, Javascript, UI/UX</td></tr>
+          <tr><td>Charlie</td><td>AWS, Docker, Kubernetes</td></tr>
+          <tr><td>David</td><td>Power BI, Excel, Tableau</td></tr>
+          <tr><td>Emma</td><td>Java, Spring Boot, PostgreSQL</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="run">
+    <div class="sec-head"><h2>Run it yourself</h2><p>You need free API keys from Pinecone and Mistral.</p></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" data-p="local">Local</button>
+      <button class="tab" role="tab" aria-selected="false" data-p="colab">Colab</button>
+    </div>
+    <div class="panel" id="local">
+<pre>git clone https://github.com/aditi27003/AI-Workforce-Matcher.git
+cd AI-Workforce-Matcher
+pip install -r requirements.txt
+cp .env.example .env   <span class="c"># add your API keys</span>
+python vector_database.py "Set up CI/CD pipelines on AWS with Docker"</pre>
+    </div>
+    <div class="panel" id="colab" hidden>
+<pre><span class="c"># 1. Open the notebook in Colab</span>
+<span class="c"># 2. Secrets panel → add MISTRAL_API_KEY and PINECONE_API_KEY</span>
+<span class="c"># 3. Runtime → Run all</span></pre>
+    </div>
+    <p class="callout">🔒 API keys stay in your local <code>.env</code> or Colab Secrets and are never committed.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>What's next</h2></div>
+    <div class="chips">
+      <span>Load employees from CSV / HR systems</span>
+      <span>Filter by availability &amp; experience</span>
+      <span>Recommend full teams</span>
+      <span>Web UI for project scopes</span>
+      <span>Pinecone reranking</span>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <span>AI Workforce Matcher · Aditi Srivastava</span>
+  <a href="https://github.com/aditi27003/AI-Workforce-Matcher">Source on GitHub</a>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var text = "We need a developer to build a reactive web dashboard interface with modern styling.";
+  var data = [["Bob",.82],["Alice",.41],["Emma",.37],["Charlie",.31],["David",.26]];
+  var q = document.getElementById('q'), emps = document.getElementById('emps'), ans = document.getElementById('ans');
+
+  emps.innerHTML = data.map(function(d,i){
+    return '<div class="emp'+(i<2?' top':'')+'"><span class="name">'+d[0]+'</span><div class="bar"><span data-w="'+(d[1]*100)+'"></span></div><span class="score">'+d[1].toFixed(2)+'</span></div>';
+  }).join('');
+
+  function showBars(){
+    emps.querySelectorAll('.bar span').forEach(function(s){ s.style.width = s.dataset.w + '%'; });
+    setTimeout(function(){ ans.classList.add('show'); }, reduce ? 0 : 900);
+  }
+  if (reduce){ q.textContent = text; showBars(); }
+  else {
+    var i = 0, caret = q.querySelector('.caret');
+    (function type(){
+      if (i <= text.length){ q.firstChild && q.firstChild.nodeType === 3 ? q.firstChild.nodeValue = text.slice(0,i) : q.insertBefore(document.createTextNode(text.slice(0,i)), caret); i++; setTimeout(type, 28); }
+      else { showBars(); }
+    })();
+  }
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.setAttribute('aria-selected', x === t); });
+      document.querySelectorAll('.panel').forEach(function(p){ p.hidden = p.id !== t.dataset.p; });
+    });
+  });
+})();
+</script>
+</body>
+</html>
